@@ -21,7 +21,7 @@ def bt_loss(h1: torch.Tensor, h2: torch.Tensor, lambda_, batch_norm=True, eps=1e
     if lambda_ is None:
         lambda_ = 1. / feature_dim
 
-    if batch_norm:
+    if batch_norm and batch_size > 1:
         z1_norm = (h1 - h1.mean(dim=0)) / (h1.std(dim=0) + eps)
         z2_norm = (h2 - h2.mean(dim=0)) / (h2.std(dim=0) + eps)
         c = (z1_norm.T @ z2_norm) / batch_size

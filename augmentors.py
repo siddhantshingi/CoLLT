@@ -6,6 +6,8 @@ import torch
 from datasets import Dataset
 from typing import Tuple
 
+from torch._C import device
+
 def get_model_inputs(x, device):
     ids = torch.tensor(x['input_ids']).to(device)
     mask = torch.tensor(x['attention_mask']).to(device)
@@ -20,13 +22,14 @@ class Augmentor():
         raise NotImplementedError(f"Dataset.augment should be implemented.")
 
     def __call__(
-            self, x: Dataset,
+            self, x: Dataset, device: str
     ) -> Tuple[torch.Tensor, torch.Tensor]:
-        return self.augment(x)
+        return self.augment(x, device=device)
 
 class Identity(Augmentor):
     def __init__(self):
         super(Identity, self).__init__()
 
-    def augment(self, x: Dataset, device=torch.device('cpu')) -> Dataset:
+    def augment(self, x: Dataset, device='cpu') -> Dataset:
+        device = torch.device(device)
         return get_model_inputs(x, device)

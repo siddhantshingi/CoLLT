@@ -1,7 +1,7 @@
 from transformers import BertForSequenceClassification, DistilBertForSequenceClassification
-from transformers import BertTokenizer, DistilBertTokenizer
+from transformers import BertTokenizerFast, DistilBertTokenizerFast
 
-def get_encoder(num_classes, model='distilbert'):
+def get_encoder(num_classes, model='distilbert', device='cpu'):
     if model=='bert':
         model = BertForSequenceClassification.from_pretrained(
             "bert-base-uncased", # Use the 12-layer BERT model, with an uncased vocab.
@@ -9,7 +9,7 @@ def get_encoder(num_classes, model='distilbert'):
             output_attentions = False, # Whether the model returns attentions weights.
             output_hidden_states = False, # Whether the model returns all hidden-states.
         )
-        tokenizer = BertTokenizer.from_pretrained('distilbert-base-uncased', do_lower_case=True)
+        tokenizer = BertTokenizerFast.from_pretrained('distilbert-base-uncased', do_lower_case=True)
     elif model=='distilbert':
         model = DistilBertForSequenceClassification.from_pretrained(
             "distilbert-base-uncased", # Use the 12-layer BERT model, with an uncased vocab.
@@ -17,5 +17,5 @@ def get_encoder(num_classes, model='distilbert'):
             output_attentions = False, # Whether the model returns attentions weights.
             output_hidden_states = False, # Whether the model returns all hidden-states.
         )
-        tokenizer = DistilBertTokenizer.from_pretrained('distilbert-base-uncased', do_lower_case=True)
-    return model, tokenizer
+        tokenizer = DistilBertTokenizerFast.from_pretrained('distilbert-base-uncased', do_lower_case=True)
+    return model.to(device), tokenizer
