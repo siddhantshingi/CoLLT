@@ -1,9 +1,11 @@
 ## Losses
 import torch
-from abc import ABC, abstractmethod
+import torch.nn.functional as F
 
-class Loss(ABC):
-    @abstractmethod
+class Loss():
+    def __init__(self):
+        pass
+
     def compute(self, anchor, sample, pos_mask, neg_mask, *args, **kwargs) -> torch.FloatTensor:
         pass
 
@@ -43,20 +45,20 @@ class BarlowTwins(Loss):
         return loss.mean()
 
 ## infoNCE
-def _similarity(h1: torch.Tensor, h2: torch.Tensor):
-    h1 = F.normalize(h1)
-    h2 = F.normalize(h2)
-    return h1 @ h2.t()
+# def _similarity(h1: torch.Tensor, h2: torch.Tensor):
+#     h1 = F.normalize(h1)
+#     h2 = F.normalize(h2)
+#     return h1 @ h2.t()
 
-class InfoNCE(Loss):
-    def __init__(self, tau):
-        super(InfoNCE, self).__init__()
-        self.tau = tau
+# class InfoNCE(Loss):
+#     def __init__(self, tau):
+#         super(InfoNCE, self).__init__()
+#         self.tau = tau
 
-    def compute(self, anchor, sample, pos_mask, neg_mask, *args, **kwargs):
-        sim = _similarity(anchor, sample) / self.tau
-        exp_sim = torch.exp(sim) * (pos_mask + neg_mask)
-        log_prob = sim - torch.log(exp_sim.sum(dim=1, keepdim=True))
-        loss = log_prob * pos_mask
-        loss = loss.sum(dim=1) / pos_mask.sum(dim=1)
-        return -loss.mean()
+#     def compute(self, anchor, sample, pos_mask, neg_mask, *args, **kwargs):
+#         sim = _similarity(anchor, sample) / self.tau
+#         exp_sim = torch.exp(sim) * (pos_mask + neg_mask)
+#         log_prob = sim - torch.log(exp_sim.sum(dim=1, keepdim=True))
+#         loss = log_prob * pos_mask
+#         loss = loss.sum(dim=1) / pos_mask.sum(dim=1)
+#         return -loss.mean()

@@ -1,4 +1,6 @@
-## Contrastive learning model defination
+import torch
+from losses import Loss
+
 class WithinEmbedContrast(torch.nn.Module):
     def __init__(self, loss: Loss, **kwargs):
         super(WithinEmbedContrast, self).__init__()
