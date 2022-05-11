@@ -6,7 +6,7 @@ To do:
   * Baselines - Nidhi
   * Datasets - Alok ( Add a histogram of text length distribution)
   * Approach - Siddhant and Mehek
-  * Add barlow twins explanation
+  * Add barlow twins explanation - Siddhant
   * Experiment 1 results
   * Experiment 2 results
   * Experiment 3 results
