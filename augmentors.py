@@ -4,10 +4,10 @@ from __future__ import annotations
 
 import torch
 from datasets import Dataset
-from typing import Optional, Tuple, NamedTuple, List
+from typing import Tuple
 
 class Augmentor():
-    """Base class for graph augmentors."""
+    """Base class for text augmentors."""
     def __init__(self):
         pass
 
