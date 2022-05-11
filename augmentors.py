@@ -6,6 +6,11 @@ import torch
 from datasets import Dataset
 from typing import Tuple
 
+def get_model_inputs(x, device):
+    ids = torch.tensor(x['input_ids']).to(device)
+    mask = torch.tensor(x['attention_mask']).to(device)
+    return ids, mask
+
 class Augmentor():
     """Base class for text augmentors."""
     def __init__(self):
@@ -23,5 +28,5 @@ class Identity(Augmentor):
     def __init__(self):
         super(Identity, self).__init__()
 
-    def augment(self, x: Dataset) -> Dataset:
-        return x
+    def augment(self, x: Dataset, device=torch.device('cpu')) -> Dataset:
+        return get_model_inputs(x, device)
