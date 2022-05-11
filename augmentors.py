@@ -5,6 +5,7 @@ from __future__ import annotations
 import torch
 from datasets import Dataset
 from typing import Tuple
+import random
 
 from torch._C import device
 
@@ -40,12 +41,12 @@ class RandomSampling(Augmentor):
 
     def augment(self, x: Dataset, device='cpu') -> Dataset:
         ids, mask = [], []
-        for data in x:
-          l = len(data['text'])
-          upper = l - 510
-          random = random.randint(1, upper)
-          ids.append([data['input_ids'][0]] + data['input_ids'][random:511] + [data['input_ids'][l-1]])
-          mask.append([data['attention_mask'][0]] + data['attention_mask'][random:511] + data['attention_mask'][l-1])
+        l = len(x['text'])
+        for i in range(l):
+          upper = max(0, len(x['input_ids'][i]) - 510)
+          r = random.randint(1, upper)
+          ids.append([x['input_ids'][i][0]] + x['input_ids'][i][r:r+511] + [x['input_ids'][i][-1]])
+          mask.append([x['attention_mask'][i][0]] + x['attention_mask'][i][r:r+511] + [x['attention_mask'][i][-1]])
         device = torch.device(device)
         ids_tensor = torch.tensor(ids).to(device)
         mask_tensor = torch.tensor(mask).to(device)
