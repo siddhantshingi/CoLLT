@@ -22,7 +22,6 @@ print(device_name)
 
 
 #Load data and split into train and test  
-#TODO create a validation set  
 # train_data, test_data = datasets.load_dataset('imdb', split =['train', 'test'], 
 #                                             cache_dir='./data/')
 # num_dev = 10
@@ -295,7 +294,6 @@ for epoch_i in range(0, epochs):
 
         pbar.set_postfix({'loss': loss.item()})
         pbar.update()
-        break
     # ========================================
     #               Validation
     # ========================================
