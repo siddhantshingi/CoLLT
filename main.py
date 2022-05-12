@@ -91,7 +91,7 @@ aug2 = A.RandomSampling()
 encoder_model = Encoder(encoder=getattr(model, model_name), augmentor=(aug1, aug2)).to(device)
 contrast_model = WithinEmbedContrast(loss=L.BarlowTwins()).to(device)
 
-optimizer = Adam(encoder_model.parameters(), lr=5e-4)
+optimizer = Adam(encoder_model.parameters(), lr=5e-3)
 scheduler = LinearWarmupCosineAnnealingLR(
     optimizer=optimizer,
     warmup_epochs=400,
@@ -109,8 +109,8 @@ def train(encoder_model, contrast_model, data, optimizer):
     optimizer.step()
     return loss.item()
 
-epoch = 1
-batch_size = 5
+epoch = 2
+batch_size = 10
 with tqdm(total=epoch, desc='(T)') as pbar:
     for epoch in range(1, epoch + 1):
         # For each batch of training data...
@@ -132,29 +132,19 @@ with tqdm(total=epoch, desc='(T)') as pbar:
 
 
 
+
 ## Plot cross-correlation matrix
-num_batches = int(len(train_data_cl)/batch_size) + 1
-z1s, z2s = [], []
-for i in range(num_batches):
-    end_index = min(batch_size * (i+1), len(train_data_cl))
-
-    batch = train_data_cl[i*batch_size:end_index]
-
-    if len(batch['text']) == 0: continue
-
-    z1, z2 = encoder_model.forward(batch)
-
-    z1s.append(z1)
-    z2s.append(z2)
+idxs = random.choice(list(range(len(train_data_cl))))
+train_subset = train_data_cl[idxs]
+z1, z2 = encoder_model.forward(train_subset)
 
 eps = 1e-15
-z1s = torch.stack(z1s)
-z2s = torch.stack(z2s)
-z1_norm = (z1s - z1s.mean(dim=0)) / (z1s.std(dim=0) + eps)
-z2_norm = (z2s - z2s.mean(dim=0)) / (z2s.std(dim=0) + eps)
+z1_norm = (z1 - z1.mean(dim=0)) / (z1.std(dim=0) + eps)
+z2_norm = (z2 - z2.mean(dim=0)) / (z2.std(dim=0) + eps)
 c = (z1_norm.T @ z2_norm) / batch_size
 
 sns.heatmap(c, square=True, annot=True, cmap='Blues', fmt='d', cbar=False)
+plt.savefig('corr.png')
 
 # # Checkpointing: Save encoder model
 # torch.save(encoder_model, "cl_encoder.pt")
@@ -235,9 +225,9 @@ def get_validation_performance(model, val_set, batch_size):
     avg_val_accuracy = total_correct / len(val_set)
     return avg_val_accuracy
 
-batch_size = 50
+batch_size = 100
 optimizer = AdamW(model.parameters(),
-                lr = 5e-5, # args.learning_rate - default is 5e-5
+                lr = 5e-3, # args.learning_rate - default is 5e-5
                 eps = 1e-8 # args.adam_epsilon  - default is 1e-8
                 )
 epochs = 1
