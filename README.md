@@ -3,7 +3,7 @@ Contrastive Learning for Long Document Transformers
 To do:
 1. Final Report
   * ~~Introduction - Copy from proposal~~
-  * ~~Related Work - Copy from proposal, Cite 10 papers, only 6 so far~
+  * ~~Related Work - Copy from proposal, Cite 10 papers, only 6 so far~~
   * ~~Baselines - Nidhi~~
   * Datasets - Alok ( Add a histogram of text length distribution)
   * Approach - Siddhant and Mehek
