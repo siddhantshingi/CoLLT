@@ -22,9 +22,10 @@ To do:
   * Contrastive on BERT, model tune and fine tune - Nidhi, Shingi, Alok
   * Contrastive on BERT, just fine tune - Shingi, Nidhi, Alok
 3. Experiment 2
-  * Contrastive on longformer, model tune and fine tune - Shingi, Alok, Nidhi
+  * ~~Contrastive on longformer, model tune and fine tune - Shingi, Alok, Nidhi~~
 4. Experiment 3
-  * Trying different augmentation types. (~~Random chunk~~, non overlapping chunk , overlapping chunk) - Mehek
+  * ~~Trying different augmentation types. (Random chunk, non overlapping chunk , overlapping chunk) - Mehek~~
+  * Generalize the number of augmentations to n - Nidhi AND siddhant
 5. Update Codebase
   * Add baseline files
   * Add augmentation stuff
