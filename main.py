@@ -22,17 +22,26 @@ print(device_name)
 
 #Load data and split into train and test  
 #TODO create a validation set  
-train_data, test_data = datasets.load_dataset('imdb', split =['train', 'test'], 
-                                            cache_dir='./data/')
-num_dev = 10
-train_data, test_data_dev = train_data.select(list(np.random.randint(len(train_data), size=num_dev))), test_data.select(list(np.random.randint(len(test_data), size=num_dev)))
+# train_data, test_data = datasets.load_dataset('imdb', split =['train', 'test'], 
+#                                             cache_dir='./data/')
+# num_dev = 10
+# train_data, test_data_dev = train_data.select(list(np.random.randint(len(train_data), size=num_dev))), test_data.select(list(np.random.randint(len(test_data), size=num_dev)))
 
 with open("data.pickle","rb") as f:
     train_data_dev = pickle.load(f)
 
+with open("data_test.pickle","rb") as f:
+    test_data_dev = pickle.load(f)
+
+with open("data_val.pickle","rb") as f:
+    val_data_dev = pickle.load(f)
+
+val_data_dev = val_data_dev.select(list(np.random.randint(len(val_data_dev), size=100)))
+check_save_data = val_data_dev.select(list(np.random.randint(len(val_data_dev), size=1)))
 #Check the data is balanced or not
 print(Counter(train_data_dev['label']))
-# print(Counter(test_data_dev['label']))
+print(Counter(test_data_dev['label']))
+print(Counter(val_data_dev['label']))
 
 #Load Bert model
 model_name='distilbert'
@@ -42,15 +51,14 @@ model, tokenizer = M.get_encoder(num_classes=2, model=model_name, device=device_
 def tokenization_contrastive(batched_text):
     return tokenizer(batched_text['text'], padding = False, truncation=False)
 train_data_cl = train_data_dev.map(tokenization_contrastive, batched = True, batch_size = len(train_data_dev))
-
+check_save_data_cl = check_save_data.map(tokenization_contrastive, batched = True, batch_size = len(check_save_data))
 
 #Tokenizer 2 for classification downstream task
 def tokenization_classification(batched_text):
     return tokenizer(batched_text['text'], padding = 'max_length', truncation=True, max_length = 512)
 train_data_dev = train_data_dev.map(tokenization_classification, batched = True, batch_size = len(train_data_dev))
 test_data_dev = test_data_dev.map(tokenization_classification, batched = True, batch_size = len(test_data_dev))
-
-
+val_data_dev = val_data_dev.map(tokenization_classification, batched = True, batch_size = len(val_data_dev))
 
 #Define Encoder class
 class Encoder(torch.nn.Module):
@@ -100,7 +108,7 @@ def train(encoder_model, contrast_model, data, optimizer):
     optimizer.step()
     return loss.item()
 
-epoch = 20
+epoch = 1
 batch_size = 5
 with tqdm(total=epoch, desc='(T)') as pbar:
     for epoch in range(1, epoch + 1):
@@ -112,11 +120,12 @@ with tqdm(total=epoch, desc='(T)') as pbar:
 
             batch = train_data_cl[i*batch_size:end_index]
 
-            if len(batch) == 0: continue
+            if len(batch['text']) == 0: continue
+
             # print (batch)
             loss = train(encoder_model, contrast_model, batch, optimizer)
             scheduler.step()
-            break
+            # break
         pbar.set_postfix({'loss': loss})
         pbar.update()
 
@@ -126,11 +135,11 @@ with tqdm(total=epoch, desc='(T)') as pbar:
 torch.save(encoder_model, "cl_encoder.pt")
 
 # Load encoder model
-# load_model = torch.load("cl_encoder.pt")
-# load_model.to(device)
-
-# print(encoder_model.predict([train_data_cl[0]]))
-# print(load_model.predict([train_data_cl[0]]))
+load_model = torch.load("cl_encoder.pt")
+load_model.to(device)
+load_model.eval()
+print(encoder_model.predict(check_save_data_cl))
+print(load_model.predict(check_save_data_cl))
 
 
 
@@ -267,7 +276,7 @@ for epoch_i in range(0, epochs):
     # After the completion of each training epoch, measure our performance on
     # our validation set. Implement this function in the cell above.
     print(f"Total loss: {total_train_loss}")
-    val_acc = get_validation_performance(model, val_set=test_data_dev, batch_size=batch_size*2)
+    val_acc = get_validation_performance(model, val_set=val_data_dev, batch_size=batch_size*2)
     print(f"Validation accuracy: {val_acc}")
     
 print("")
