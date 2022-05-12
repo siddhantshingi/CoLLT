@@ -37,7 +37,8 @@ with open("data_val.pickle","rb") as f:
     val_data_dev = pickle.load(f)
 
 val_data_dev = val_data_dev.select(list(np.random.randint(len(val_data_dev), size=100)))
-check_save_data = val_data_dev.select(list(np.random.randint(len(val_data_dev), size=1)))
+# check_save_data = val_data_dev.select(list(np.random.randint(len(val_data_dev), size=1)))
+
 #Check the data is balanced or not
 print(Counter(train_data_dev['label']))
 print(Counter(test_data_dev['label']))
@@ -51,7 +52,7 @@ model, tokenizer = M.get_encoder(num_classes=2, model=model_name, device=device_
 def tokenization_contrastive(batched_text):
     return tokenizer(batched_text['text'], padding = False, truncation=False)
 train_data_cl = train_data_dev.map(tokenization_contrastive, batched = True, batch_size = len(train_data_dev))
-check_save_data_cl = check_save_data.map(tokenization_contrastive, batched = True, batch_size = len(check_save_data))
+# check_save_data_cl = check_save_data.map(tokenization_contrastive, batched = True, batch_size = len(check_save_data))
 
 #Tokenizer 2 for classification downstream task
 def tokenization_classification(batched_text):
@@ -131,15 +132,15 @@ with tqdm(total=epoch, desc='(T)') as pbar:
 
 
 
-# Checkpointing: Save encoder model
-torch.save(encoder_model, "cl_encoder.pt")
+# # Checkpointing: Save encoder model
+# torch.save(encoder_model, "cl_encoder.pt")
 
-# Load encoder model
-load_model = torch.load("cl_encoder.pt")
-load_model.to(device)
-load_model.eval()
-print(encoder_model.predict(check_save_data_cl))
-print(load_model.predict(check_save_data_cl))
+# # Load encoder model
+# load_model = torch.load("cl_encoder.pt")
+# load_model.to(device)
+# load_model.eval()
+# print(encoder_model.predict(check_save_data_cl))
+# print(load_model.predict(check_save_data_cl))
 
 
 
@@ -155,16 +156,15 @@ def get_validation_performance(model, val_set, batch_size):
     # Tracking variables 
     total_eval_accuracy = 0
     total_eval_loss = 0
-
-    num_batches = int(len(val_set)/batch_size) + 1
+    num_batches = int(len(val_set)//batch_size)
 
     total_correct = 0
     total = 0
-    with tqdm(total=epoch, desc='(V)') as pbar:
+    with tqdm(total=num_batches, desc='(V)') as pbar:
       for i in range(num_batches):
-
+        print(i, batch_size, len(val_set))
         end_index = min(batch_size * (i+1), len(val_set))
-
+        print(i,batch_size,end_index)
         batch = val_set[i*batch_size:end_index]
         
         if len(batch['text']) == 0: continue
@@ -216,7 +216,7 @@ optimizer = AdamW(model.parameters(),
                 lr = 5e-5, # args.learning_rate - default is 5e-5
                 eps = 1e-8 # args.adam_epsilon  - default is 1e-8
                 )
-epochs = 10
+epochs = 1
 for epoch_i in range(0, epochs):
     # Perform one full pass over the training set.
 
@@ -270,13 +270,14 @@ for epoch_i in range(0, epochs):
 
         pbar.set_postfix({'loss': loss.item()})
         pbar.update()
+        break
     # ========================================
     #               Validation
     # ========================================
     # After the completion of each training epoch, measure our performance on
     # our validation set. Implement this function in the cell above.
     print(f"Total loss: {total_train_loss}")
-    val_acc = get_validation_performance(model, val_set=val_data_dev, batch_size=batch_size*2)
+    val_acc = get_validation_performance(model, val_set=val_data_dev, batch_size=batch_size//2)
     print(f"Validation accuracy: {val_acc}")
     
 print("")
