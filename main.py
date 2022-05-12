@@ -13,6 +13,7 @@ from pl_bolts.optimizers import LinearWarmupCosineAnnealingLR
 import numpy as np
 import pickle
 import io
+import seaborn as sns
 
 #Use CUDA if available
 device_name = 'cuda' if torch.cuda.is_available() else "cpu"
@@ -131,6 +132,30 @@ with tqdm(total=epoch, desc='(T)') as pbar:
         pbar.update()
 
 
+
+## Plot cross-correlation matrix
+num_batches = int(len(train_data_cl)/batch_size) + 1
+z1s, z2s = [], []
+for i in range(num_batches):
+    end_index = min(batch_size * (i+1), len(train_data_cl))
+
+    batch = train_data_cl[i*batch_size:end_index]
+
+    if len(batch['text']) == 0: continue
+
+    z1, z2 = encoder_model.forward(batch)
+
+    z1s.append(z1)
+    z2s.append(z2)
+
+eps = 1e-15
+z1s = torch.stack(z1s)
+z2s = torch.stack(z2s)
+z1_norm = (z1s - z1s.mean(dim=0)) / (z1s.std(dim=0) + eps)
+z2_norm = (z2s - z2s.mean(dim=0)) / (z2s.std(dim=0) + eps)
+c = (z1_norm.T @ z2_norm) / batch_size
+
+sns.heatmap(c, square=True, annot=True, cmap='Blues', fmt='d', cbar=False)
 
 # # Checkpointing: Save encoder model
 # torch.save(encoder_model, "cl_encoder.pt")
