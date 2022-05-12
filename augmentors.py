@@ -43,10 +43,15 @@ class RandomSampling(Augmentor):
         ids, mask = [], []
         l = len(x['text'])
         for i in range(l):
-          upper = max(0, len(x['input_ids'][i]) - 510)
-          r = random.randint(1, upper)
-          ids.append([x['input_ids'][i][0]] + x['input_ids'][i][r:r+511] + [x['input_ids'][i][-1]])
-          mask.append([x['attention_mask'][i][0]] + x['attention_mask'][i][r:r+511] + [x['attention_mask'][i][-1]])
+            if len(x["input_ids"][i]) <= 512:
+                ids.append(x["input_ids"][i] + [0]*(512 - len(x["input_ids"][i])))
+                mask.append(x["attention_mask"][i] + [0]*(512 - len(x["attention_mask"][i])))
+                continue
+            upper = len(x['input_ids'][i]) - 510
+            r = random.randint(1, upper)
+
+            ids.append([x['input_ids'][i][0]] + x['input_ids'][i][r:r+510] + [x['input_ids'][i][-1]])
+            mask.append([x['attention_mask'][i][0]] + x['attention_mask'][i][r:r+510] + [x['attention_mask'][i][-1]])
         device = torch.device(device)
         ids_tensor = torch.tensor(ids).to(device)
         mask_tensor = torch.tensor(mask).to(device)
