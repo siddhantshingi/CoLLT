@@ -56,3 +56,61 @@ class RandomSampling(Augmentor):
         ids_tensor = torch.tensor(ids).to(device)
         mask_tensor = torch.tensor(mask).to(device)
         return ids_tensor, mask_tensor
+
+class NonOverlappingChunks(Augmentor):
+    def __init__(self):
+        super(NonOverlappingChunks, self).__init__()
+
+    def augment(self, x: Dataset, device='cpu') -> Dataset:
+        ids, mask = [], []
+        l = len(x['text'])
+        for i in range(l):
+            input_x = x["input_ids"][i]
+            input_len = len(x["input_ids"][i])
+            cls_id = [x['input_ids'][i][0]]
+            cls_mask = [x['attention_mask'][i][0]]
+            sep_id = [x['input_ids'][i][-1]]
+            sep_mask = [x['attention_mask'][i][-1]]
+            start = 1
+            while(input_len>512):
+              ids.append(cls_id + x['input_ids'][i][start:start + 511] + sep_id)
+              mask.append(cls_mask+ x['attention_mask'][i][start:start + 511] + sep_mask)
+              start += 511
+              input_len -= 510
+            if input_len <= 512:
+                ids.append(cls_id + x["input_ids"][i] + [0]*(511 - input_len))
+                mask.append(cls_mask + x["attention_mask"][i] + [0]*(511 - input_len))
+                
+        device = torch.device(device)
+        ids_tensor = torch.tensor(ids).to(device)
+        mask_tensor = torch.tensor(mask).to(device)
+        return ids_tensor, mask_tensor
+
+class OverlappingChunks(Augmentor):
+    def __init__(self):
+        super(OverlappingChunks, self).__init__()
+
+    def augment(self, x: Dataset, device='cpu') -> Dataset:
+        ids, mask = [], []
+        l = len(x['text'])
+        for i in range(l):
+            input_x = x["input_ids"][i]
+            input_len = len(x["input_ids"][i])
+            cls_id = [x['input_ids'][i][0]]
+            cls_mask = [x['attention_mask'][i][0]]
+            sep_id = [x['input_ids'][i][-1]]
+            sep_mask = [x['attention_mask'][i][-1]]
+            start = 1
+            while(input_len>512):
+              ids.append(cls_id + x['input_ids'][i][start:start + 511] + sep_id)
+              mask.append(cls_mask+ x['attention_mask'][i][start:start + 511] + sep_mask)
+              start += 311
+              input_len -= 510
+            if input_len <= 512:
+                ids.append(cls_id + x["input_ids"][i] + [0]*(511 - input_len))
+                mask.append(cls_mask + x["attention_mask"][i] + [0]*(511 - input_len))
+                
+        device = torch.device(device)
+        ids_tensor = torch.tensor(ids).to(device)
+        mask_tensor = torch.tensor(mask).to(device)
+        return ids_tensor, mask_tensor

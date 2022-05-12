@@ -13,6 +13,7 @@ from pl_bolts.optimizers import LinearWarmupCosineAnnealingLR
 import numpy as np
 import pickle
 import io
+import seaborn as sns
 
 #Use CUDA if available
 device_name = 'cuda' if torch.cuda.is_available() else "cpu"
@@ -21,7 +22,6 @@ print(device_name)
 
 
 #Load data and split into train and test  
-#TODO create a validation set  
 # train_data, test_data = datasets.load_dataset('imdb', split =['train', 'test'], 
 #                                             cache_dir='./data/')
 # num_dev = 10
@@ -37,7 +37,8 @@ with open("data_val.pickle","rb") as f:
     val_data_dev = pickle.load(f)
 
 val_data_dev = val_data_dev.select(list(np.random.randint(len(val_data_dev), size=100)))
-check_save_data = val_data_dev.select(list(np.random.randint(len(val_data_dev), size=1)))
+# check_save_data = val_data_dev.select(list(np.random.randint(len(val_data_dev), size=1)))
+
 #Check the data is balanced or not
 print(Counter(train_data_dev['label']))
 print(Counter(test_data_dev['label']))
@@ -51,7 +52,7 @@ model, tokenizer = M.get_encoder(num_classes=2, model=model_name, device=device_
 def tokenization_contrastive(batched_text):
     return tokenizer(batched_text['text'], padding = False, truncation=False)
 train_data_cl = train_data_dev.map(tokenization_contrastive, batched = True, batch_size = len(train_data_dev))
-check_save_data_cl = check_save_data.map(tokenization_contrastive, batched = True, batch_size = len(check_save_data))
+# check_save_data_cl = check_save_data.map(tokenization_contrastive, batched = True, batch_size = len(check_save_data))
 
 #Tokenizer 2 for classification downstream task
 def tokenization_classification(batched_text):
@@ -90,7 +91,7 @@ aug2 = A.RandomSampling()
 encoder_model = Encoder(encoder=getattr(model, model_name), augmentor=(aug1, aug2)).to(device)
 contrast_model = WithinEmbedContrast(loss=L.BarlowTwins()).to(device)
 
-optimizer = Adam(encoder_model.parameters(), lr=5e-4)
+optimizer = Adam(encoder_model.parameters(), lr=5e-3)
 scheduler = LinearWarmupCosineAnnealingLR(
     optimizer=optimizer,
     warmup_epochs=400,
@@ -108,8 +109,8 @@ def train(encoder_model, contrast_model, data, optimizer):
     optimizer.step()
     return loss.item()
 
-epoch = 1
-batch_size = 5
+epoch = 2
+batch_size = 10
 with tqdm(total=epoch, desc='(T)') as pbar:
     for epoch in range(1, epoch + 1):
         # For each batch of training data...
@@ -131,15 +132,29 @@ with tqdm(total=epoch, desc='(T)') as pbar:
 
 
 
-# Checkpointing: Save encoder model
-torch.save(encoder_model, "cl_encoder.pt")
 
-# Load encoder model
-load_model = torch.load("cl_encoder.pt")
-load_model.to(device)
-load_model.eval()
-print(encoder_model.predict(check_save_data_cl))
-print(load_model.predict(check_save_data_cl))
+## Plot cross-correlation matrix
+idxs = random.choice(list(range(len(train_data_cl))))
+train_subset = train_data_cl[idxs]
+z1, z2 = encoder_model.forward(train_subset)
+
+eps = 1e-15
+z1_norm = (z1 - z1.mean(dim=0)) / (z1.std(dim=0) + eps)
+z2_norm = (z2 - z2.mean(dim=0)) / (z2.std(dim=0) + eps)
+c = (z1_norm.T @ z2_norm) / batch_size
+
+sns.heatmap(c, square=True, annot=True, cmap='Blues', fmt='d', cbar=False)
+plt.savefig('corr.png')
+
+# # Checkpointing: Save encoder model
+# torch.save(encoder_model, "cl_encoder.pt")
+
+# # Load encoder model
+# load_model = torch.load("cl_encoder.pt")
+# load_model.to(device)
+# load_model.eval()
+# print(encoder_model.predict(check_save_data_cl))
+# print(load_model.predict(check_save_data_cl))
 
 
 
@@ -155,16 +170,15 @@ def get_validation_performance(model, val_set, batch_size):
     # Tracking variables 
     total_eval_accuracy = 0
     total_eval_loss = 0
-
-    num_batches = int(len(val_set)/batch_size) + 1
+    num_batches = int(len(val_set)//batch_size)
 
     total_correct = 0
     total = 0
-    with tqdm(total=epoch, desc='(V)') as pbar:
+    with tqdm(total=num_batches, desc='(V)') as pbar:
       for i in range(num_batches):
-
+        print(i, batch_size, len(val_set))
         end_index = min(batch_size * (i+1), len(val_set))
-
+        print(i,batch_size,end_index)
         batch = val_set[i*batch_size:end_index]
         
         if len(batch['text']) == 0: continue
@@ -211,12 +225,12 @@ def get_validation_performance(model, val_set, batch_size):
     avg_val_accuracy = total_correct / len(val_set)
     return avg_val_accuracy
 
-batch_size = 50
+batch_size = 100
 optimizer = AdamW(model.parameters(),
-                lr = 5e-5, # args.learning_rate - default is 5e-5
+                lr = 5e-3, # args.learning_rate - default is 5e-5
                 eps = 1e-8 # args.adam_epsilon  - default is 1e-8
                 )
-epochs = 10
+epochs = 1
 for epoch_i in range(0, epochs):
     # Perform one full pass over the training set.
 
@@ -276,7 +290,7 @@ for epoch_i in range(0, epochs):
     # After the completion of each training epoch, measure our performance on
     # our validation set. Implement this function in the cell above.
     print(f"Total loss: {total_train_loss}")
-    val_acc = get_validation_performance(model, val_set=val_data_dev, batch_size=batch_size*2)
+    val_acc = get_validation_performance(model, val_set=val_data_dev, batch_size=batch_size//2)
     print(f"Validation accuracy: {val_acc}")
     
 print("")

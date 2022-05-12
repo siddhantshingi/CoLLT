@@ -1,6 +1,7 @@
 from transformers import LongformerForSequenceClassification, BertForSequenceClassification, DistilBertForSequenceClassification, RobertaForSequenceClassification,RobertaConfig
 from transformers import LongformerTokenizerFast, BertTokenizerFast, DistilBertTokenizerFast, RobertaTokenizer
 
+
 def get_encoder(num_classes, model='distilbert', device='cpu'):
     if model=='bert':
         model = BertForSequenceClassification.from_pretrained(
@@ -27,5 +28,6 @@ def get_encoder(num_classes, model='distilbert', device='cpu'):
       config = RobertaConfig.from_pretrained('roberta-base')
       tokenizer = RobertaTokenizer.from_pretrained('roberta-base')
       model = RobertaForSequenceClassification(config)
+
 
     return model.to(device), tokenizer
