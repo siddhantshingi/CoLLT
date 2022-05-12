@@ -23,3 +23,7 @@ To do:
   * Contrastive on longformer, model tune and fine tune - Shingi, Alok, Nidhi
 4. Experiment 3
   * Trying different augmentation types. (Random chunk, non overlapping chunk , overlapping chunk) - Mehek
+5. Update Codebase
+  * Add baseline files
+  * Add augmentation stuff
+  * Generalise augmentation in model
