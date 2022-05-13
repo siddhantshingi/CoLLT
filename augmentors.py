@@ -19,19 +19,19 @@ class Augmentor():
     def __init__(self):
         pass
 
-    def augment(self, x: Dataset) -> Dataset:
+    def augment(self, x: Dataset, idx: int, device: str):
         raise NotImplementedError(f"Dataset.augment should be implemented.")
 
     def __call__(
-            self, x: Dataset, device: str
+            self, x: Dataset, idx: int, device: str
     ) -> Tuple[torch.Tensor, torch.Tensor]:
-        return self.augment(x, device=device)
+        return self.augment(x, idx=idx, device=device)
 
 class Identity(Augmentor):
     def __init__(self):
         super(Identity, self).__init__()
 
-    def augment(self, x: Dataset, device='cpu') -> Dataset:
+    def augment(self, x: Dataset, idx=None, device='cpu'):
         device = torch.device(device)
         return get_model_inputs(x, device)
 
@@ -39,7 +39,7 @@ class RandomSampling(Augmentor):
     def __init__(self):
         super(RandomSampling, self).__init__()
 
-    def augment(self, x: Dataset, device='cpu') -> Dataset:
+    def augment(self, x: Dataset, idx=None, device='cpu'):
         ids, mask = [], []
         l = len(x['text'])
         for i in range(l):
@@ -61,7 +61,7 @@ class NonOverlappingChunks(Augmentor):
     def __init__(self):
         super(NonOverlappingChunks, self).__init__()
 
-    def augment(self, x: Dataset, device='cpu') -> Dataset:
+    def augment(self, x: Dataset, idx=None, device='cpu'):
         ids, mask = [], []
         l = len(x['text'])
         for i in range(l):
@@ -90,7 +90,7 @@ class OverlappingChunks(Augmentor):
     def __init__(self):
         super(OverlappingChunks, self).__init__()
 
-    def augment(self, x: Dataset, device='cpu') -> Dataset:
+    def augment(self, x: Dataset, idx=None, device='cpu'):
         ids, mask = [], []
         l = len(x['text'])
         for i in range(l):

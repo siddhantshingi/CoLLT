@@ -8,12 +8,11 @@ from collections import Counter
 from tqdm import tqdm
 from torch.optim import Adam, AdamW
 import datasets
-from contrast_models import WithinEmbedContrast
+from contrast_models import WithinEmbedContrast, WithinEmbedContrastMultiple
 from pl_bolts.optimizers import LinearWarmupCosineAnnealingLR
 import numpy as np
 import pickle
-import io
-import seaborn as sns
+import random
 
 #Use CUDA if available
 device_name = 'cuda' if torch.cuda.is_available() else "cpu"
@@ -68,28 +67,38 @@ class Encoder(torch.nn.Module):
         self.encoder = encoder
         self.augmentor = augmentor
 
+        self.fc1 = torch.nn.Linear(input_dim, hidden_dim)
+        self.fc2 = torch.nn.Linear(hidden_dim, output_dim)
+        torch.nn.init.xavier_normal_(self.fc1.weight, gain=1.4)
+        torch.nn.init.xavier_normal_(self.fc2.weight, gain=1.4)
+
     def forward(self, x):
-        aug1, aug2 = self.augmentor
-        ids1, mask1 = aug1(x, device_name)
-        ids2, mask2 = aug2(x, device_name)
-        z1 = self.encoder(ids1, mask1).last_hidden_state[:,0,:]
-        z2 = self.encoder(ids2, mask2).last_hidden_state[:,0,:]
-        return z1, z2
+        zs = []
+        for i, aug in enumerate(self.augmentor):
+            ids, mask = aug(x, idx=i, device=device_name)
+            zs.append(self.encoder(ids, mask).last_hidden_state[:,0,:])
+        return torch.stack(zs)
     
     def predict(self, x):
-        aug1, aug2 = self.augmentor
-        ids1, mask1 = aug1(x, device_name)
-        ids2, mask2 = aug2(x, device_name)
-        z1 = self.encoder(ids1, mask1).last_hidden_state[:,0,:]
-        z2 = self.encoder(ids2, mask2).last_hidden_state[:,0,:]
-        return (z1 + z2)/2
+        for i, aug in enumerate(self.augmentor):
+            ids, mask = aug(x, idx=i, device=device_name)
+            if i == 0:
+                zs = self.encoder(ids, mask).last_hidden_state[:,0,:]
+            else:
+                zs += self.encoder(ids, mask).last_hidden_state[:,0,:]
+        return zs/len(self.augmentor)
 
-#TODO: Generalize for any number of augmentations
-aug1 = A.RandomSampling()
-aug2 = A.RandomSampling()
+    def project(self, x):
+        zs = self.forward(x)
+        for i, z in enumerate(zs):
+            zs[i] = self.fc2(F.relu(self.fc1(z)))
+        return zs
 
-encoder_model = Encoder(encoder=getattr(model, model_name), augmentor=(aug1, aug2)).to(device)
-contrast_model = WithinEmbedContrast(loss=L.BarlowTwins()).to(device)
+num_views = 2
+augs = [A.RandomSampling()]*num_views
+
+encoder_model = Encoder(encoder=getattr(model, model_name), augmentor=augs).to(device)
+contrast_model = WithinEmbedContrastMultiple(loss=L.BarlowTwins()).to(device)
 
 optimizer = Adam(encoder_model.parameters(), lr=5e-3)
 scheduler = LinearWarmupCosineAnnealingLR(
@@ -100,8 +109,8 @@ scheduler = LinearWarmupCosineAnnealingLR(
 def train(encoder_model, contrast_model, data, optimizer):
     encoder_model.train()
     optimizer.zero_grad()
-    z1, z2 = encoder_model.forward(data)
-    loss = contrast_model(z1, z2)
+    zs = encoder_model.project(data)
+    loss = contrast_model(zs)
     if torch.isnan(loss):
       print ('ERROR')
       return
@@ -123,39 +132,11 @@ with tqdm(total=epoch, desc='(T)') as pbar:
 
             if len(batch['text']) == 0: continue
 
-            # print (batch)
             loss = train(encoder_model, contrast_model, batch, optimizer)
             scheduler.step()
             # break
         pbar.set_postfix({'loss': loss})
         pbar.update()
-
-
-
-
-## Plot cross-correlation matrix
-idxs = random.choice(list(range(len(train_data_cl))))
-train_subset = train_data_cl[idxs]
-z1, z2 = encoder_model.forward(train_subset)
-
-eps = 1e-15
-z1_norm = (z1 - z1.mean(dim=0)) / (z1.std(dim=0) + eps)
-z2_norm = (z2 - z2.mean(dim=0)) / (z2.std(dim=0) + eps)
-c = (z1_norm.T @ z2_norm) / batch_size
-
-sns.heatmap(c, square=True, annot=True, cmap='Blues', fmt='d', cbar=False)
-plt.savefig('corr.png')
-
-# # Checkpointing: Save encoder model
-# torch.save(encoder_model, "cl_encoder.pt")
-
-# # Load encoder model
-# load_model = torch.load("cl_encoder.pt")
-# load_model.to(device)
-# load_model.eval()
-# print(encoder_model.predict(check_save_data_cl))
-# print(load_model.predict(check_save_data_cl))
-
 
 
 # Freeze the model parameters
