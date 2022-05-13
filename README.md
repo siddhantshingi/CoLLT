@@ -1,3 +1,5 @@
+[![forthebadge made-with-python](http://ForTheBadge.com/images/badges/made-with-python.svg)](https://www.python.org/)
+
 # <p align=center>`CoLLT: Contrastive Learning for Long-document Transformers`</p>
 `CoLLT` is a contrastive learning framework for training BERT and its variants to classify long input sequence.
 
