@@ -1,32 +1,13 @@
-# CoLLT
-Contrastive Learning for Long Document Transformers 
-To do:
-1. Final Report
-  * ~~Introduction - Copy from proposal~~
-  * ~~Related Work - Copy from proposal, Cite 10 papers, only 6 so far~~
-  * ~~Baselines - Nidhi~~
-  * Datasets - Alok ( Add a histogram of text length distribution)
-  * Approach - Siddhant and Mehek
-  * ~~Add barlow twins explanation - Siddhant~~
-  * Experiment 1 results
-  * Experiment 2 results
-  * Experiment 3 results
-  * Baseline Results
-  * Error analysis
-  * Conclusion and Future work
-2. Experiment 1
-  * ~~Baseline 1 - Run BERT on IMDB 1000 subset, just fine tune - Alok~~
-  * ~~Baseline 2 - Run BERT on IMDB 1000 subset, model tune and fine tune - Alok~~
-  * Baseline 3 - Run longformer on IMDB 1000 subset, model tune and fine tune - Nidhi
-  * Baseline 4 - Run RoBERTa on IMDB 1000 subset - Alok
-  * Contrastive on BERT, model tune and fine tune - Nidhi, Shingi, Alok
-  * Contrastive on BERT, just fine tune - Shingi, Nidhi, Alok
-3. Experiment 2
-  * ~~Contrastive on longformer, model tune and fine tune - Shingi, Alok, Nidhi~~
-4. Experiment 3
-  * ~~Trying different augmentation types. (Random chunk, non overlapping chunk , overlapping chunk) - Mehek~~
-  * Generalize the number of augmentations to n - Nidhi AND siddhant
-5. Update Codebase
-  * Add baseline files
-  * Add augmentation stuff
-  * Generalise augmentation in model
+# <p align=center>`CoLLT: Contrastive Learning for Long-document Transformers`</p>
+`CoLLT` is a contrastive learning framework for training BERT and its variants to classify long input sequence.
+
+## How to run the file
+1. Download the zip folder for the code
+2. Run the main.ipynb notebook to execute the experiments
+
+## About the code
+The code is written in a well designed modular way so that implementing new contrastive loss, augmentation technique or data encoder is easy. The code is divided into 4 main files: 
+1. augmenters.py: contains code for different augmentation techniques which are needed for view construction
+2. models.py: contains code for different data encoders
+3. contrast\_models.py: contains pre processing step (like sample positive and negative samples, etc) before applying contrastive loss
+4. losses.py: contains code for barlow twin's loss. We have a main.py file which handles the training of end-to-end model pipeline. 
